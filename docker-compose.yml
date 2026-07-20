@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  todo_backend:
+    build: .
+    container_name: todo_laravel_app
+    ports:
+      - "9000:80"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - todo_database
+
+  todo_database:
+    image: mysql:8.0
+    container_name: todo_mysql_db
+    ports:
+      - "3308:3306"
+    environment:
+      MYSQL_DATABASE: todolist_db
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: root
+    volumes:
+      - todo_db_data:/var/lib/mysql
+
+volumes:
+  todo_db_data:
