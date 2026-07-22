@@ -11,8 +11,9 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 20px 0;
         }
         .card {
             background-color: #ffffff;
@@ -103,8 +104,9 @@
             <div class="form-group">
                 <label>Hesap Türü</label>
                 <select name="role" id="roleSelect" required>
-                    <option value="user">Normal Kullanıcı</option>
-                    <option value="admin">Sistem Yöneticisi (Admin)</option>
+                    <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>Normal Kullanıcı (Eleman)</option>
+                    <option value="manager" {{ old('role') == 'manager' ? 'selected' : '' }}>Müdür</option>
+                    <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Sistem Yöneticisi (Admin)</option>
                 </select>
             </div>
 
@@ -123,10 +125,10 @@
                 <input type="password" name="password" required placeholder="••••••••">
             </div>
             
-            <!-- Bu alan JavaScript ile Admin seçildiğinde gizlenecek -->
-            <div class="form-group" id="adminField">
-                <label>Bağlı Olduğunuz Adminin Adı</label>
-                <input type="text" name="admin_username" id="adminInput" value="{{ old('admin_username') }}" placeholder="Örn: Sistem Yöneticisi">
+            <!-- Sadece 'Normal Kullanıcı' seçildiğinde görünecek Müdür E-posta Alanı -->
+            <div class="form-group" id="managerField">
+                <label>Bağlı Olduğunuz Müdürün E-posta Adresi</label>
+                <input type="email" name="manager_email" id="managerInput" value="{{ old('manager_email') }}" placeholder="mudur@sirket.com">
             </div>
             
             <button type="submit" class="btn">Kayıt Ol</button>
@@ -138,25 +140,26 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var roleSelect = document.getElementById('roleSelect');
-            var adminField = document.getElementById('adminField');
-            var adminInput = document.getElementById('adminInput');
+            var managerField = document.getElementById('managerField');
+            var managerInput = document.getElementById('managerInput');
             
-            function toggleAdminField() {
-                if(roleSelect.value === 'admin') {
-                    adminField.style.display = 'none';
-                    adminInput.required = false;
-                    adminInput.value = ''; // İçini boşaltıyoruz ki arka plana boş gitsin
+            function toggleManagerField() {
+                // Sadece 'user' seçildiğinde müdür e-postası fillsin
+                if(roleSelect.value === 'user') {
+                    managerField.style.display = 'block';
+                    managerInput.required = true;
                 } else {
-                    adminField.style.display = 'block';
-                    adminInput.required = true;
+                    managerField.style.display = 'none';
+                    managerInput.required = false;
+                    managerInput.value = ''; // İçi temizlensin ki arka plana boş gitsin
                 }
             }
 
             // Seçim değiştiğinde tetikle
-            roleSelect.addEventListener('change', toggleAdminField);
+            roleSelect.addEventListener('change', toggleManagerField);
             
             // Sayfa yüklendiğinde mevcut duruma göre çalıştır
-            toggleAdminField();
+            toggleManagerField();
         });
     </script>
 </body>

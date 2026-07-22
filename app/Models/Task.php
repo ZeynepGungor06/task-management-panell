@@ -8,4 +8,19 @@ class Task extends Model
 {
     // Veritabanına dışarıdan eklenebilecek sütunları belirtiyoruz
     protected $fillable = ['user_id', 'title', 'is_completed'];
+
+    // Görevin kime ait olduğu (User bağlantısı) - Bunu da ekleyelim, garanti olsun
+    public function user() {
+        return $this->belongsTo(User::class);
+    }
+
+    // Görevin dosyaları
+    public function files() {
+        return $this->hasMany(TaskFile::class);
+    }
+
+    // Görevin yorumları
+    public function comments() {
+        return $this->hasMany(TaskComment::class);
+    }
 }

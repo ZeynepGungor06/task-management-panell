@@ -13,20 +13,29 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Admin Kullanıcısı Oluşturuyoruz
+        // 1. Sistem Yöneticisi (Admin)
         User::create([
             'name' => 'Sistem Yöneticisi',
             'email' => 'admin@test.com',
-            'password' => Hash::make('password123'), // Giriş yaparken kullanacağımız şifre
+            'password' => Hash::make('password123'),
             'role' => 'admin',
         ]);
 
-        // 2. Normal Kullanıcı Oluşturuyoruz
+        // 2. Birim Müdürü (Manager)
+        $manager = User::create([
+            'name' => 'Ahmet Müdür',
+            'email' => 'mudur@test.com',
+            'password' => Hash::make('password123'),
+            'role' => 'manager',
+        ]);
+
+        // 3. Müdüre Bağlı Normal Kullanıcı (User)
         User::create([
-            'name' => 'Normal Kullanıcı',
+            'name' => 'Mehmet Eleman',
             'email' => 'user@test.com',
             'password' => Hash::make('password123'),
             'role' => 'user',
+            'manager_id' => $manager->id, // Ahmet Müdür'e bağlı
         ]);
     }
 }
