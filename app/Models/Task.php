@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Task extends Model
 {
     // Veritabanına dışarıdan eklenebilecek sütunları belirtiyoruz
-    protected $fillable = ['user_id', 'title', 'is_completed'];
+    protected $fillable = ['user_id', 'title', 'is_completed','priority','due_date'];
+
+    protected $casts=['due_date'=>'datetime',];
 
     // Görevin kime ait olduğu (User bağlantısı) - Bunu da ekleyelim, garanti olsun
     public function user() {

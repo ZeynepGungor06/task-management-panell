@@ -15,7 +15,7 @@ class TaskController extends Controller
 {
     public function index(Request $request)
     {
-        $user = Auth::user();
+        $user = Auth::user(); 
         $users = [];
         $selectedUserId = $user->id;
 
@@ -50,11 +50,14 @@ class TaskController extends Controller
 
     public function store(Request $request)
     {
+        
         $request->validate(['title' => 'required|string|max:255']);
         
         $task = new Task();
         $task->title = $request->title;
         $task->is_completed = false;
+        $task->priority=$request->priority;
+        $task->due_date=$request->due_date;
         
         // Admin veya Müdür birini seçtiyse ona ata, yoksa kendine ata
         if ((Auth::user()->role === 'admin' || Auth::user()->role === 'manager') && $request->has('user_id')) {
@@ -62,9 +65,10 @@ class TaskController extends Controller
         } else {
             $task->user_id = Auth::id(); 
         }
-        $duplicateTask=Task::where('user_id',Auth::id())
-        ->where('title',$request->title)
-        ->exists();
+        $duplicateTask = Task::where('user_id', $task->user_id)
+            ->where('title', $request->title)
+            ->exists();
+            
         if($duplicateTask) {
             throw new DuplicateTaskException();
         }
@@ -96,19 +100,34 @@ class TaskController extends Controller
     
  public function update(Request $request, Task $task)
     {
+        if ($task->due_date && $task->due_date->isPast()) {
+        abort(403, 'Bu görevin teslim tarihi geçtiği için işlem yapılamaz.');
+    }
         $task->is_completed = !$task->is_completed;
         $task->save();
 
-        // Eğer görev "Completed" yapıldıysa ve yapan kişi "user" ise
+        
         if ($task->is_completed && Auth::user()->role === 'user' && Auth::user()->manager_id) {
             
             $manager = User::find(Auth::user()->manager_id); 
             
             if ($manager) {
-                // dd() kısımlarını kaldırdık, artık kod doğrudan bildirimi gönderecek!
+                
                 $manager->notify(new \App\Notifications\TaskCompletedNotification($task, Auth::user()));
             }
         }
 
         return back();
-    }}
+    }
+    public function updateDetails(Request $request,$id){
+        if ($request->user()->role !== 'admin' && $request->user()->role !== 'manager') {
+            abort(403, 'Görev detaylarını sadece yöneticiler değiştirebilir.');
+        }
+        $request->validate(['priority'=>'required|in:low,medium,high','due_date'=>'nullable|date']);
+        $task = \App\Models\Task::findOrFail($id);
+        $task->priority = $request->priority;
+        $task->due_date = $request->due_date;
+        $task->save();
+        return back();
+    }
+    }

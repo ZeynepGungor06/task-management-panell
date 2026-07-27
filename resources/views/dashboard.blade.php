@@ -291,8 +291,20 @@
                     <label>Görev Adı</label>
                     <input type="text" name="title" required placeholder="Görevi buraya yazın...">
                 </div>
-                
-                <button type="submit" class="btn-submit">Ekle</button>
+                <div class="form-group ">
+                    <label>Önem Derecesi</label>
+                    <select name="priority" required>
+                        <option value="low">Düşük Önem</option>
+                        <option value="medium">Orta Önem</option>
+                        <option value="high">Yüksek Önem</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label >Son Teslim Tarihi</label>
+                    <input type="datetime-local" name="due_date" class="form-control">
+                </div>
+
+             <button type="submit" class="btn-submit">Ekle</button>
             </form>
             
         </div>

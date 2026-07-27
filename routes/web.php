@@ -37,3 +37,5 @@ Route::post('/notifications/{id}/read', function (Request $request, $id) {
     $notification->markAsRead(); 
     return back();
 })->name('notifications.read');
+Route::put('/comments/{id}/spam', [App\Http\Controllers\CommentController::class, 'toggleSpam'])->name('comments.spam');
+Route::patch('/tasks/{id}/details', [TaskController::class, 'updateDetails'])->name('tasks.update_details');

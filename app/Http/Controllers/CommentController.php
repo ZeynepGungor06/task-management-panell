@@ -28,6 +28,16 @@ class CommentController extends Controller
         return back()->with('success','Yorum eklendi.');
 
     }
+    public function toggleSpam(Request $request,$id){
+        if($request->user()->role !== 'admin'){
+            abort(403, 'Bu işlem için yetkiniz bulunmamaktadır');
+        }
+        $comment=\App\Models\TaskComment::findOrFail($id);
+        $comment->is_spam=!$comment->is_spam;
+        $comment->save();
+
+        return back();
+    }
     public function destroy($id){
         $comment=TaskComment::findOrFail($id);
         $comment->delete();
