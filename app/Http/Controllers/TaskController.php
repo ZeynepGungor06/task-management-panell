@@ -7,6 +7,9 @@ use App\Models\Task;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use App\Exceptions\UnauthorizedTaskAccessException;
+use App\Exceptions\DuplicateTaskException;
+use App\Notifications\TaskAssignedNotification;
+use App\Notifications\TaskCompletedNotification;
 
 class TaskController extends Controller
 {
@@ -33,9 +36,14 @@ class TaskController extends Controller
         $tasks = Task::with(['files', 'comments', 'comments.user'])
              ->where('user_id', $selectedUserId)
              ->orderBy('created_at', 'desc')
-             ->get();
+             ->paginate(10);
 
         $selectedUser = User::find($selectedUserId);
+
+        if($request->ajax()){
+            $view=view('partials.task_list', compact('tasks','user','selectedUser'))->render();
+            return response()->json(['html'=>$view]);
+        }
 
         return view('dashboard', compact('tasks', 'users', 'selectedUser', 'user'));
     }
@@ -54,8 +62,20 @@ class TaskController extends Controller
         } else {
             $task->user_id = Auth::id(); 
         }
+        $duplicateTask=Task::where('user_id',Auth::id())
+        ->where('title',$request->title)
+        ->exists();
+        if($duplicateTask) {
+            throw new DuplicateTaskException();
+        }
 
         $task->save();
+        if($task->user_id !== Auth::id()){
+            $assignedUser=User::find($task->user_id);
+            if($assignedUser) {
+                $assignedUser->notify(new TaskAssignedNotification($task));
+            }
+        }
         return back();
     }
 
@@ -74,5 +94,21 @@ class TaskController extends Controller
         return back();
     }
     
-    // update fonksiyonu aynı kalabilir...
-}
+ public function update(Request $request, Task $task)
+    {
+        $task->is_completed = !$task->is_completed;
+        $task->save();
+
+        // Eğer görev "Completed" yapıldıysa ve yapan kişi "user" ise
+        if ($task->is_completed && Auth::user()->role === 'user' && Auth::user()->manager_id) {
+            
+            $manager = User::find(Auth::user()->manager_id); 
+            
+            if ($manager) {
+                // dd() kısımlarını kaldırdık, artık kod doğrudan bildirimi gönderecek!
+                $manager->notify(new \App\Notifications\TaskCompletedNotification($task, Auth::user()));
+            }
+        }
+
+        return back();
+    }}

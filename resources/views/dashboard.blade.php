@@ -164,16 +164,62 @@
                 ({{ $user->name }} - {{ ucfirst($user->role) }})
             </span>
         </h1>
-        <form action="{{ route('logout') }}" method="POST">
-            @csrf
-            <button type="submit" class="logout-btn">Çıkış Yap</button>
-        </form>
+        
+        <div style="display: flex; align-items: center; gap: 20px;">
+            
+            <!-- BİLDİRİM ZİLİ (BOOTSTRAP DROPDOWN) -->
+            <div class="dropdown">
+                <button class="btn btn-light position-relative" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: transparent;">
+                    <i class="bi bi-bell-fill" style="font-size: 1.2rem; color: #5b8fb9;"></i>
+                    <!-- Okunmamış Bildirim Sayısı -->
+                    @if(auth()->user()->unreadNotifications->count() > 0)
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                            {{ auth()->user()->unreadNotifications->count() }}
+                        </span>
+                    @endif
+                </button>
+                
+                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="notificationDropdown" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                    <li><h6 class="dropdown-header fw-bold">Bildirimler</h6></li>
+                    
+                    @forelse(auth()->user()->unreadNotifications as $notification)
+                        <li class="border-bottom px-3 py-2" style="background-color: #f8fbff;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-dark">{{ $notification->data['message'] }}</small>
+                                <form action="{{ route('notifications.read', $notification->id) }}" method="POST" style="margin: 0;">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm text-success p-0 ms-2" title="Okundu İşaretle">
+                                        <i class="bi bi-check2-all"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            <small class="text-muted" style="font-size: 0.7rem;">{{ $notification->created_at->diffForHumans() }}</small>
+                        </li>
+                    @empty
+                        <li><span class="dropdown-item text-muted text-center" style="font-size: 0.9rem;">Yeni bildiriminiz yok.</span></li>
+                    @endforelse
+                </ul>
+            </div>
+
+            <!-- ÇIKIŞ YAP BUTONU -->
+            <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
+                @csrf
+                <button type="submit" class="logout-btn">Çıkış Yap</button>
+            </form>
+        </div>
     </div>
 
     <div class="container">
+       
         
         <!-- SOL TARAF: BÜYÜK KUTU (Görev Listesi) -->
         <div class="left-panel">
+            @if(session('breadcrumb_error'))
+                <div style="background-color: #f8d7da; color: #842029; padding: 10px 15px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #f5c2c7; font-size: 14px; display: flex; align-items: center;">
+                    <i class="bi bi-exclamation-circle-fill me-2" style="margin-right: 8px;"></i>
+                    <span><strong>Hata:</strong> {{ session('breadcrumb_error') }}</span>
+                </div>
+            @endif
             <h2>
                 @if(($user->role === 'admin' || $user->role === 'manager') && isset($selectedUser) && $selectedUser->id !== $user->id)
                     {{ $selectedUser->name }} Kullanıcısının Görevleri
@@ -183,134 +229,15 @@
             </h2>
 
             @if(count($tasks) > 0)
-                @foreach($tasks as $task)
-                    <div class="task-item {{ $task->is_completed ? 'completed' : '' }}">
-                        <div class="task-title">{{ $task->title }}</div>
-                        <div class="task-actions">
-                            
-                            <!-- Completed / Pending Değiştirme Formu -->
-                            <form action="{{ route('tasks.update', $task->id) }}" method="POST" style="margin:0;">
-                                @csrf
-                                @method('PUT')
-                                @if($task->is_completed)
-                                    <button type="submit" class="btn btn-completed">Completed</button>
-                                @else
-                                    <button type="submit" class="btn btn-pending">Pending</button>
-                                @endif
-                            </form>
-                            
-                            <!-- Detay Butonu -->
-                            <button type="button" class="btn" style="background-color: #5b8fb9;" data-bs-toggle="modal" data-bs-target="#taskDetailModal{{ $task->id }}">
-                                Detay
-                            </button>
-                            
-                            <!-- Silme Formu (Normal User Silemez) -->
-                            @if(auth()->user()->role !== 'user')
-                                <form action="{{ route('tasks.destroy', $task->id) }}" method="POST" style="margin:0;">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-delete">Sil</button>
-                                </form>
-                            @endif
-                        </div>
-                    </div>
+               <div id="task-container">
+                @include('partials.task_list')
 
-                    <!-- Görev Detay Modalı -->
-                    <div class="modal fade" id="taskDetailModal{{ $task->id }}" tabindex="-1" aria-labelledby="taskDetailModalLabel{{ $task->id }}" aria-hidden="true">
-                      <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                        <div class="modal-content">
-                          
-                          <div class="modal-header">
-                            <h5 class="modal-title" id="taskDetailModalLabel{{ $task->id }}">{{ $task->title }} - Detaylar</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
-                          </div>
-                          
-                          <div class="modal-body">
-                            
-                            <!-- DOSYALAR BÖLÜMÜ -->
-                            <h6 class="border-bottom pb-2 mb-3">Eklenen Dosyalar</h6>
-                            
-                            <!-- Dosya Yükleme Formu -->
-                            <form action="{{ route('files.store', $task->id) }}" method="POST" enctype="multipart/form-data" class="mb-3 d-flex gap-2">
-                                @csrf
-                                <input class="form-control form-control-sm" type="file" name="file" required>
-                                <button class="btn btn-sm btn-primary" type="submit">Yükle</button>
-                            </form>
-
-                            <!-- Yüklü Dosyaların Listesi -->
-                            <div class="row g-2 mb-4">
-                                @forelse($task->files as $file)
-                                <div class="col-md-6">
-                                    <div class="card bg-light">
-                                        <div class="card-body p-2 d-flex justify-content-between align-items-center">
-                                            <div class="text-truncate me-2">
-                                                <i class="bi bi-file-earmark-text me-1 text-primary"></i>
-                                                <small title="{{ $file->original_name }}">{{ \Illuminate\Support\Str::limit($file->original_name, 20) }}</small>
-                                            </div>
-                                            <div class="d-flex gap-1">
-                                                <!-- İndirme Butonu -->
-                                                <a href="{{ route('files.download', $file->id) }}" class="btn btn-sm btn-outline-success p-1">
-                                                    <i class="bi bi-download"></i>
-                                                </a>
-                                                <!-- Silme Butonu -->
-                                                <form action="{{ route('files.destroy', $file->id) }}" method="POST" class="d-inline">
-                                                    @csrf 
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger p-1"><i class="bi bi-trash"></i></button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                @empty
-                                <p class="text-muted small">Henüz dosya eklenmemiş.</p>
-                                @endforelse
-                            </div>
-
-                            <!-- YORUMLAR BÖLÜMÜ -->
-                            <h6 class="border-bottom pb-2 mb-3 mt-4">Yorumlar</h6>
-                            
-                            <!-- Yorum Ekleme Formu -->
-                            <form action="{{ route('comments.store', $task->id) }}" method="POST" class="mb-3">
-                                @csrf
-                                <div class="form-group mb-2">
-                                    <textarea name="comment" class="form-control" rows="2" placeholder="Görevle ilgili bir yorum yaz..." required></textarea>
-                                </div>
-                                <div class="text-end">
-                                    <button type="submit" class="btn btn-sm btn-primary">Gönder</button>
-                                </div>
-                            </form>
-
-                            <!-- Yorumlar Listesi -->
-                            <div class="list-group">
-                                @forelse($task->comments as $comment)
-                                <div class="list-group-item list-group-item-action">
-                                    <div class="d-flex w-100 justify-content-between align-items-center">
-                                        <h6 class="mb-1 fw-bold text-primary">{{ $comment->user->name }}</h6>
-                                        <small class="text-muted">{{ $comment->created_at->diffForHumans() }}</small>
-                                    </div>
-                                    <p class="mb-1 text-sm mt-2">{{ $comment->comment }}</p>
-                                    
-                                    <!-- Sadece yorumu yazan kişi veya admin/müdür silebilir -->
-                                    @if(auth()->user()->role === 'admin' || auth()->user()->role === 'manager' || auth()->id() === $comment->user_id)
-                                    <form action="{{ route('comments.destroy', $comment->id) }}" method="POST" class="text-end mt-1">
-                                        @csrf 
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-link text-danger p-0 text-decoration-none" style="font-size: 0.8rem;">Sil</button>
-                                    </form>
-                                    @endif
-                                </div>
-                                @empty
-                                <p class="text-muted small">Henüz yorum yapılmamış.</p>
-                                @endforelse
-                            </div>
-
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                @endforeach
+               </div>
+               <div id="loading-spinner" style="display: none; text-align: center; padding: 20px;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Yükleniyor...</span>
+                </div>
+               </div>
             @else
                 <p style="color: #6b8299; text-align: center; margin-top: 30px;">Gösterilecek bir görev bulunamadı.</p>
             @endif
@@ -371,5 +298,47 @@
         </div>
     </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let page=1;
+    let isLoading=false;
+    let hasMoreData=true;
+    window.addEventListener('scroll',() => {
+        if(window.innerHeight + window.scrollY >= document.body.offsetHeight - 100){
+            if(!isLoading && hasMoreData){
+                loadMoreTasks();
+            }
+        }
+    });
+    function loadMoreTasks(){
+        isLoading=true;
+        page++;
+
+        document.getElementById('loading-spinner').style.display='block';
+        let url=new URL(window.location.href);
+        url.searchParams.set('page',page);
+
+        fetch(url,{
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('loading-spinner').style.display='none';
+            if(data.html.trim()===''){
+                hasMoreData=false;
+                return;
+            }
+
+            document.getElementById('task-container').insertAdjacentHTML('beforeend',data.html);
+            isLoading=false;
+
+        })
+        .catch(error => {
+            console.error('Sunucu Hatası:', error);
+            isLoading=false;
+        });
+    }
+</script>
 </body>
 </html>

@@ -8,7 +8,7 @@ services:
       - "9000:80"
     volumes:
       - .:/var/www/html
-      - /var/www/html/vendor
+      - todo_vendor_data:/var/www/html/vendor
     depends_on:
       - todo_database
 
@@ -26,3 +26,4 @@ services:
 
 volumes:
   todo_db_data:
+  todo_vendor_data:
