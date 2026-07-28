@@ -35,8 +35,33 @@ class TaskController extends Controller
 
         $tasks = Task::with(['files', 'comments', 'comments.user'])
              ->where('user_id', $selectedUserId)
+             ->when($request->filled('search'), function($query) use ($request){
+                return $query->where('title','LIKE','%' . $request->search . '%');
+             })
+             ->when($request->filled('priority'),function ($query) use ($request){
+                return $query->where('priority', $request->priority);
+             })
+             ->when($request->filled('status'), function ($query) use ($request){
+                if($request->status==='completed'){
+                    return $query->where('is_completed',true);
+
+                }
+                elseif($request->status==='pending'){
+                    return $query->where('is_completed', false);
+                }
+             })
+             ->when($request->filled('data_filter'), function ($query) use ($request){
+                if($request->date_filter==='overdue'){
+                    return $query->whereNotNull('due_date')->where('due_date', '<', now());
+                }
+                elseif($request->date_filter=== 'today'){
+                    return $query->whereNotNull('due_date')->whereDate('due_date', now()->toDateString());
+                }
+                    
+             })
              ->orderBy('created_at', 'desc')
-             ->paginate(10);
+             ->paginate(10)
+             ->appends($request->all());
 
         $selectedUser = User::find($selectedUserId);
 

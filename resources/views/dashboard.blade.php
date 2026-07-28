@@ -164,6 +164,33 @@
                 ({{ $user->name }} - {{ ucfirst($user->role) }})
             </span>
         </h1>
+        <form action="{{ route('dashboard') }}" method="GET" class="d-flex gap-2" style="width:320px ;">
+           @if(request('user_id'))
+                <input type="hidden" name="user_id" value="{{ request('user_id') }}">
+            @endif
+          <div class="input-group input-group-sm">
+            <input type="text"
+            name="search"
+            class="form-control"
+            placeholder="Görev ara"
+            value= "{{ request('search') }}"
+            style="border-color: #d1e3f2;"
+            >
+            <button class="btn" type="submit" style="background-color: #5b8fb9; color: white;">
+                    <i class="bi bi-search"></i>
+                </button>
+                <button class="btn btn-outline-secondary ms-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#filterOffcanvas" style="background-color: #fff; color: #5b8fb9; border-color: #d1e3f2;">
+                    <i class="bi bi-funnel"></i> Filtrele
+                </button>
+                @if(request('search'))
+                    <a href="{{ route('dashboard', request()->only('user_id')) }}" class="btn btn-outline-danger" title="Aramayı Temizle">
+                        <i class="bi bi-x-circle"></i>
+                    </a>
+                @endif
+          </div>
+
+
+        </form>
         
         <div style="display: flex; align-items: center; gap: 20px;">
             
@@ -352,5 +379,62 @@
         });
     }
 </script>
+
+<!-- Filtreleme Çekmecesi (Offcanvas) -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="filterOffcanvas" aria-labelledby="filterOffcanvasLabel">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title" id="filterOffcanvasLabel" style="color: #5b8fb9;"><i class="bi bi-funnel"></i> Görevleri Filtrele</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Kapat"></button>
+    </div>
+    <div class="offcanvas-body" style="background-color: #f8fbff;">
+        
+        <form action="{{ route('dashboard') }}" method="GET">
+            <!-- Mevcut aramayı ve user_id'yi kaybetmemek için gizli olarak gönderiyoruz -->
+            @if(request('search'))
+                <input type="hidden" name="search" value="{{ request('search') }}">
+            @endif
+            @if(request('user_id'))
+                <input type="hidden" name="user_id" value="{{ request('user_id') }}">
+            @endif
+
+            <!-- Önem Derecesi Filtresi -->
+            <div class="mb-4">
+                <label class="form-label fw-bold" style="color: #6b8299;">Önem Derecesi</label>
+                <select name="priority" class="form-select shadow-sm border-0">
+                    <option value="">Tümü</option>
+                    <option value="low" {{ request('priority') == 'low' ? 'selected' : '' }}>Düşük Önem</option>
+                    <option value="medium" {{ request('priority') == 'medium' ? 'selected' : '' }}>Orta Önem</option>
+                    <option value="high" {{ request('priority') == 'high' ? 'selected' : '' }}>Yüksek Önem</option>
+                </select>
+            </div>
+
+            <!-- Durum Filtresi -->
+            <div class="mb-4">
+                <label class="form-label fw-bold" style="color: #6b8299;">Görev Durumu</label>
+                <select name="status" class="form-select shadow-sm border-0">
+                    <option value="">Tümü</option>
+                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Sadece Bekleyenler</option>
+                    <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Tamamlananlar</option>
+                </select>
+            </div>
+            
+            <!-- Tarih Filtresi -->
+            <div class="mb-5">
+                <label class="form-label fw-bold" style="color: #6b8299;">Teslim Tarihi</label>
+                <select name="date_filter" class="form-select shadow-sm border-0">
+                    <option value="">Tümü</option>
+                    <option value="overdue" {{ request('date_filter') == 'overdue' ? 'selected' : '' }}>Süresi Geçen / Gecikenler</option>
+                    <option value="today" {{ request('date_filter') == 'today' ? 'selected' : '' }}>Bugün Teslim Edilecekler</option>
+                </select>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn fw-bold" style="background-color: #5b8fb9; color: white; padding: 10px;">Sonuçları Göster</button>
+                <a href="{{ route('dashboard', request()->only('user_id')) }}" class="btn btn-outline-danger" style="padding: 10px;">Ana Sayfaya Dön (Temizle)</a>
+            </div>
+        </form>
+
+    </div>
+</div>
 </body>
 </html>

@@ -6,12 +6,15 @@ use App\Models\TaskFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\StoreFileRequest;
 class DocumentController extends Controller
 {
-    public function store(Request $request, $taskId){
-      $request->validate([
-            'file' => 'required|file|max:5120', 
-        ]);
+    public function store(StoreFileRequest $request, $taskId){
+        $task = \App\Models\Task::findOrFail($taskId);
+        if ($task->due_date && $task->due_date->isPast()) {
+        abort(403, 'Bu görevin teslim tarihi geçtiği için işlem yapılamaz.');
+    }
+      
         $file=$request->file('file');
         $originalName=$file->getClientOriginalName();
         $path=$file->store('task_files','public');
