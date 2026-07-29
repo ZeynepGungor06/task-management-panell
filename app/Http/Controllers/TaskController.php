@@ -155,4 +155,28 @@ class TaskController extends Controller
         $task->save();
         return back();
     }
+    public function statistics(){
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if($user->role!=='admin' && $user->role !=='manager'){
+            abort(403,'Bu sayfaya erişim yetkiniz bulunmamaktadır.');
+        }
+        $totalTasks=Task::count();
+        $completedTasks=Task::where('is_completed',true)->count();
+        $pendingTasks=Task::where('is_completed',false)->count();
+
+        $overdueTasks=Task::where('is_completed',false)
+        ->whereNotNull('due_date')
+        ->where('due_date','<',now())
+        ->count();
+
+        $usersStats=\App\Models\User::withCount(['tasks','tasks as completed_tasks_count'=>function($query){
+            $query->where('is_completed',true);
+        },
+        'tasks as pending_tasks_count'=>function($query){
+            $query->where('is_completed',false);
+        }
+        ])->get();
+        return view('statistics ', compact('user','totalTasks','completedTasks','pendingTasks','overdueTasks','usersStats'));
+
+    }
     }

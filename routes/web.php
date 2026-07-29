@@ -6,6 +6,9 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\CommentController;
 use Illuminate\Http\Request;
+use App\Models\Task;
+use Illuminate\Support\Facades\Mail;
+use Carbon\Carbon;
 
 // Giriş ve Kayıt Sayfaları Rotaları
 Route::get('/', function () {
@@ -16,6 +19,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::get('/statistics',[TaskController::class,'statistics'])->name('statistics');
 
 // Kullanıcı ve Admin Panelleri (İleride yetkiye göre burayı korumaya alacağız)
 Route::get('/dashboard', [TaskController::class, 'index'])->name('dashboard');
@@ -39,3 +43,26 @@ Route::post('/notifications/{id}/read', function (Request $request, $id) {
 })->name('notifications.read');
 Route::put('/comments/{id}/spam', [App\Http\Controllers\CommentController::class, 'toggleSpam'])->name('comments.spam');
 Route::patch('/tasks/{id}/details', [TaskController::class, 'updateDetails'])->name('tasks.update_details');
+Route::get('/ping', function () {
+    return response()->json(['mesaj' => 'Laravel ayakta ve çalışıyor!', 'zaman' => now()]);
+});
+Route::get('/send-reminders',function(){
+    $tasks=Task::with('user')
+    ->whereDate('due_date',Carbon::Tomorrow())
+    ->where('is_completed',false)
+    ->get();
+    $sentCount=0;
+
+    foreach($tasks as $task){
+        if($task->user){
+            $mesaj="Merhaba" . $task->user->name . ", '" . $task->title . "' adli görevinizin teslim tarihi yarın doluyor.";
+
+            Mail::raw($mesaj,function($mail) use ($task){
+                $mail->to($task->user->email)
+                ->subject('Görev Hatırlatması: Yaklaşan teslim Tarihi');
+            });
+            $sentCount++;
+        }
+    }
+    return response()->json(['mesaj'=>"İşlem tamam! $sentCount kişiye hatırlatma e-postası gönderildi."]);
+});

@@ -12,6 +12,10 @@ use App\Models\Task;
 class CommentController extends Controller
 {
     public function store(Request $request,$taskId){
+        $task = \App\Models\Task::findOrFail($taskId);
+        if ($task->due_date && $task->due_date->isPast()) {
+        abort(403, 'Bu görevin teslim tarihi geçtiği için işlem yapılamaz.');
+    }
         $task=Task::findOrFail($taskId);
         if($task->is_completed){
             throw new TaskCompletedException();

@@ -24,6 +24,14 @@ services:
     volumes:
       - todo_db_data:/var/lib/mysql
 
+  ping_worker:
+    build: 
+      context: ./node_worker
+    container_name: my_node_worker
+    restart: unless-stopped
+    depends_on:
+      - todo_backend
+
 volumes:
   todo_db_data:
   todo_vendor_data:

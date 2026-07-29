@@ -193,6 +193,12 @@
         </form>
         
         <div style="display: flex; align-items: center; gap: 20px;">
+            <!-- SADECE YÖNETİCİLER İÇİN İSTATİSTİKLER BUTONU -->
+            @if(auth()->user()->role === 'admin' || auth()->user()->role === 'manager')
+                <a href="{{ route('statistics') }}" class="btn" style="background-color: #5b8fb9; color: white; font-weight: bold; border: none;">
+                    <i class="bi bi-bar-chart-fill"></i> İstatistikler
+                </a>
+            @endif
             
             <!-- BİLDİRİM ZİLİ (BOOTSTRAP DROPDOWN) -->
             <div class="dropdown">
