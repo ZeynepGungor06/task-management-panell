@@ -31,7 +31,16 @@ services:
     restart: unless-stopped
     depends_on:
       - todo_backend
-
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: todo_phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: todo_database
+      MYSQL_ROOT_PASSWORD: root
+    depends_on:
+      - todo_database
 volumes:
   todo_db_data:
   todo_vendor_data:

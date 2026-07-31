@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use App\Models\Task;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
+use App\Notifications\TaskReminderNotification;
+use App\Http\Controllers\TagController;
 
 // Giriş ve Kayıt Sayfaları Rotaları
 Route::get('/', function () {
@@ -50,6 +52,7 @@ Route::get('/send-reminders',function(){
     $tasks=Task::with('user')
     ->whereDate('due_date',Carbon::Tomorrow())
     ->where('is_completed',false)
+    ->where('is_reminder_sent', false)
     ->get();
     $sentCount=0;
 
@@ -61,8 +64,15 @@ Route::get('/send-reminders',function(){
                 $mail->to($task->user->email)
                 ->subject('Görev Hatırlatması: Yaklaşan teslim Tarihi');
             });
+            $task->user->notify(new TaskReminderNotification($task));
+            $task->is_reminder_sent=true;
+            $task->save();
             $sentCount++;
         }
     }
     return response()->json(['mesaj'=>"İşlem tamam! $sentCount kişiye hatırlatma e-postası gönderildi."]);
+});
+Route::middleware(['auth', \App\Http\Middleware\IsAdmin::class])->group(function () {
+Route::post('/tags',[TagController::class, 'store'])->name('tags.store');
+Route::delete('/tags/{tag}', [TagController::class, 'destroy'])->name('tags.destroy');
 });

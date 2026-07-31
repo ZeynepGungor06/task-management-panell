@@ -25,4 +25,7 @@ class Task extends Model
     public function comments() {
         return $this->hasMany(TaskComment::class);
     }
+    public function tags(){
+        return $this->belongsToMany(Tag::class, 'task_tag');
+    }
 }

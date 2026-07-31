@@ -2,6 +2,13 @@
 <div class="task-item {{ $task->is_completed ? 'completed' : '' }}">
     <div class="task-title">
         {{ $task->title }}
+        <div class="mt-1">
+            @foreach($task->tags as $tag)
+            <span class="badge" style="background-color: {{ $tag->color }}; color: #fff; font-size: 0.75rem;"
+            > {{ $tag->name }}
+        </span>
+        @endforeach    
+        </div>
         
         <!-- YENİ: Görevin yanında önem derecesini ve tarihini gösteriyoruz -->
         <span class="badge bg-{{ $task->priority == 'high' ? 'danger' : ($task->priority == 'medium' ? 'warning' : 'info') }} ms-2" style="font-size: 0.7rem;">

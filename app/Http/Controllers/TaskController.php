@@ -10,6 +10,7 @@ use App\Exceptions\UnauthorizedTaskAccessException;
 use App\Exceptions\DuplicateTaskException;
 use App\Notifications\TaskAssignedNotification;
 use App\Notifications\TaskCompletedNotification;
+use App\Models\Tag;
 
 class TaskController extends Controller
 {
@@ -36,7 +37,15 @@ class TaskController extends Controller
         $tasks = Task::with(['files', 'comments', 'comments.user'])
              ->where('user_id', $selectedUserId)
              ->when($request->filled('search'), function($query) use ($request){
-                return $query->where('title','LIKE','%' . $request->search . '%');
+                $aranan=$request->search;
+                if(str_starts_with($aranan,'#')){
+                    $etiketAdi=ltrim($aranan,'#');
+                    return $query->whereHas('tags',function($q) use ($etiketAdi){
+                        $q->where('name','LIKE','%' . $etiketAdi.'%');
+
+                    });
+                }
+             return $query->where('title','LIKE','%' . $aranan . '%');
              })
              ->when($request->filled('priority'),function ($query) use ($request){
                 return $query->where('priority', $request->priority);
@@ -69,8 +78,11 @@ class TaskController extends Controller
             $view=view('partials.task_list', compact('tasks','user','selectedUser'))->render();
             return response()->json(['html'=>$view]);
         }
+        $tasks->load('tags');
+        $tags=Tag::all();
+        
 
-        return view('dashboard', compact('tasks', 'users', 'selectedUser', 'user'));
+        return view('dashboard', compact('tasks', 'users', 'selectedUser', 'user','tags'));
     }
 
     public function store(Request $request)
@@ -99,6 +111,9 @@ class TaskController extends Controller
         }
 
         $task->save();
+        if($request->has('tags')){
+            $task->tags()->attach($request->tags);
+        }
         if($task->user_id !== Auth::id()){
             $assignedUser=User::find($task->user_id);
             if($assignedUser) {
@@ -130,7 +145,13 @@ class TaskController extends Controller
     }
         $task->is_completed = !$task->is_completed;
         $task->save();
+        if($request->has('tags')){
+        $task->tags()->sync($request->tags);
 
+        }
+      else{
+        $task->tags()->detach();
+      }
         
         if ($task->is_completed && Auth::user()->role === 'user' && Auth::user()->manager_id) {
             

@@ -7,7 +7,7 @@ async function sendRequest(){
         console.log(`[${new Date().toISOString()}] İstek atılıyor: ${targetUrl}`);
         const response=await fetch(targetUrl);
         const data=await response.json();
-        console.log("Cevap başarılı:", data.id);
+        console.log("Cevap başarılı:", data.mesaj);
     }catch(error){
         console.error("İstek sırasında bir hata oluştu:", error.message);
     }
