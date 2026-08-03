@@ -233,6 +233,7 @@
                     @endforelse
                 </ul>
             </div>
+            
 
             <!-- ÇIKIŞ YAP BUTONU -->
             <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
@@ -513,5 +514,7 @@
 
     </div>
 </div>
+
+
 </body>
 </html>

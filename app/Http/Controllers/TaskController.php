@@ -18,10 +18,10 @@ class TaskController extends Controller
     {
         $user = Auth::user(); 
         $users = [];
-        $selectedUserId = $user->id;
+        $selectedUserId = Auth::id();
 
         // KİM KİMİ GÖREBİLİR MANTIĞI:
-        if ($user->role === 'admin') {
+         if ($user && $user->role === 'admin') {
             // Admin sistemdeki HERKESİ (tüm user ve manager'ları) görebilir
             $users = User::all(); 
         } elseif ($user->role === 'manager') {
@@ -80,6 +80,7 @@ class TaskController extends Controller
         }
         $tasks->load('tags');
         $tags=Tag::all();
+        
         
 
         return view('dashboard', compact('tasks', 'users', 'selectedUser', 'user','tags'));
@@ -200,4 +201,5 @@ class TaskController extends Controller
         return view('statistics ', compact('user','totalTasks','completedTasks','pendingTasks','overdueTasks','usersStats'));
 
     }
+    
     }

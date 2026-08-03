@@ -75,4 +75,7 @@ Route::get('/send-reminders',function(){
 Route::middleware(['auth', \App\Http\Middleware\IsAdmin::class])->group(function () {
 Route::post('/tags',[TagController::class, 'store'])->name('tags.store');
 Route::delete('/tags/{tag}', [TagController::class, 'destroy'])->name('tags.destroy');
+
 });
+
+Route::get('/dashboard', [TaskController::class, 'index'])->middleware('auth')->name('dashboard');
