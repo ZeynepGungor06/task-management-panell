@@ -36,6 +36,7 @@ class TaskController extends Controller
 
         $tasks = Task::with(['files', 'comments', 'comments.user'])
              ->where('user_id', $selectedUserId)
+             ->whereNull('parent_id')
              ->when($request->filled('search'), function($query) use ($request){
                 $aranan=$request->search;
                 if(str_starts_with($aranan,'#')){
@@ -80,22 +81,25 @@ class TaskController extends Controller
         }
         $tasks->load('tags');
         $tags=Tag::all();
+
+        $mainTasks=Task::where('user_id',$selectedUserId)->whereNull('parent_id')->get();
         
         
 
-        return view('dashboard', compact('tasks', 'users', 'selectedUser', 'user','tags'));
+        return view('dashboard', compact('tasks', 'users', 'selectedUser', 'user','tags','mainTasks'));
     }
 
     public function store(Request $request)
     {
         
-        $request->validate(['title' => 'required|string|max:255']);
+        $request->validate(['title' => 'required|string|max:255' ,'parent_id' => 'nullable|exists:tasks,id']);
         
         $task = new Task();
         $task->title = $request->title;
         $task->is_completed = false;
         $task->priority=$request->priority;
         $task->due_date=$request->due_date;
+        $task->parent_id = $request->parent_id;
         
         // Admin veya Müdür birini seçtiyse ona ata, yoksa kendine ata
         if ((Auth::user()->role === 'admin' || Auth::user()->role === 'manager') && $request->has('user_id')) {

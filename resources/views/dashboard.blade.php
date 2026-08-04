@@ -325,6 +325,17 @@
                     <label>Görev Adı</label>
                     <input type="text" name="title" required placeholder="Görevi buraya yazın...">
                 </div>
+                <div class="mb-3">
+                    <label for="parent_id" class=""form-label>Bu bir alt görev mi?</label>
+                <select name="parent_id" id="parent_id" class="form-select">
+                    <option value=""> Bağımsız bir ana görev</option>
+                   @foreach($mainTasks as $mainTask)
+            <option value="{{ $mainTask->id }}">
+             "{{ $mainTask->title }}" isimli görevin altına ekle
+            </option>
+        @endforeach
+                </select>
+                </div>
                 <div class="form-group ">
                     <label>Önem Derecesi</label>
                     <select name="priority" required>

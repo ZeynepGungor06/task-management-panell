@@ -8,7 +8,7 @@ class Task extends Model
 {
     
     // Veritabanına dışarıdan eklenebilecek sütunları belirtiyoruz
-    protected $fillable = ['user_id', 'title', 'is_completed','priority','due_date'];
+    protected $fillable = ['user_id', 'title', 'is_completed','priority','due_date', 'parent_id'];
 
     protected $casts=['due_date'=>'datetime',];
 
@@ -29,4 +29,11 @@ class Task extends Model
     public function tags(){
         return $this->belongsToMany(Tag::class, 'task_tag');
     }
+    public function parent(){
+        return $this->belongsTo(Task::class,'parent_id');
+    }
+    public function children(){
+        return $this->hasMany(Task::class,'parent_id');
+    }
+
 }
