@@ -148,6 +148,12 @@ class TaskController extends Controller
         if ($task->due_date && $task->due_date->isPast()) {
         abort(403, 'Bu görevin teslim tarihi geçtiği için işlem yapılamaz.');
     }
+    if(!$task->is_completed){
+        $hasUnfinishedSubtask=$task->children()->where('is_completed',false)->exists();
+        if($hasUnfinishedSubtask){
+            return back()->with('error','Bu görevi tamamlayabilmek için önce tüm alt görevleri bitirmelisiniz.');
+        }
+    }
         $task->is_completed = !$task->is_completed;
         $task->save();
         if($request->has('tags')){
@@ -168,7 +174,7 @@ class TaskController extends Controller
             }
         }
 
-        return back();
+        return back()->with('success','Görev durumu başarıyla güncellendi');
     }
     public function updateDetails(Request $request,$id){
         if ($request->user()->role !== 'admin' && $request->user()->role !== 'manager') {
