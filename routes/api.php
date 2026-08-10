@@ -27,4 +27,7 @@ Route::post('/tasks/{task}/files', [\App\Http\Controllers\Api\DocumentController
     Route::post('/tasks/{task}/comments', [\App\Http\Controllers\Api\CommentController::class, 'store']);
     Route::patch('/comments/{id}/spam', [\App\Http\Controllers\Api\CommentController::class, 'toggleSpam']);
     Route::delete('/comments/{id}', [\App\Http\Controllers\Api\CommentController::class, 'destroy']);
+    // TagController Rotaları
+    Route::post('/tags', [\App\Http\Controllers\Api\TagController::class, 'store']);
+    Route::delete('/tags/{tag}', [\App\Http\Controllers\Api\TagController::class, 'destroy']);
 });
