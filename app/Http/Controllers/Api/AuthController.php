@@ -27,6 +27,20 @@ class AuthController extends Controller
             'token_type'=>'Bearer',
             'user'=>$user
         ]);
+
+    }
+    public function updateFcmToken(Request $request){
+        $request->validate([
+            'fcm_token'=>'required|string'
+        ]);
+        $user=$request->user();
+        $user->update([
+            'fcm_token'=>$request->fcm_token
+        ]);
+        return response()->json([
+            'success'=>true,
+            'message'=>'FCM Token başarıyla kaydedildi'
+        ]);
     }
     
 }

@@ -12,7 +12,11 @@ use App\Exceptions\DuplicateTaskException;
 use App\Notifications\TaskAssignedNotification;
 use App\Notifications\TaskCompletedNotification;
 use App\Models\Tag;
-
+use Illuminate\Support\Facades\Http;
+use Kreait\Laravel\Firebase\Facades\Firebase;
+use Kreait\Firebase\Messaging\CloudMessage;
+use Kreait\Firebase\Messaging\Notification;
+use Illuminate\Support\Facades\Log;
 class TaskController extends Controller
 {
     public function index(Request $request){
@@ -85,8 +89,9 @@ class TaskController extends Controller
         $task->priority = $request->priority;
         $task->due_date = $request->due_date;
         $task->parent_id = $request->parent_id;
+        $task->assigned_to=$request->assigned_to;
         
-        if ((Auth::user()->role === 'ADMİN' || Auth::user()->role === 'manager') && $request->has('user_id')) {
+        if ((Auth::user()->role === 'admin' || Auth::user()->role === 'manager') && $request->has('user_id')) {
             $task->user_id = $request->user_id;
         } else {
             $task->user_id = Auth::id(); 
@@ -112,6 +117,29 @@ class TaskController extends Controller
                 $assignedUser->notify(new TaskAssignedNotification($task));
             }
         }
+
+        if ($request->filled('assigned_to')) {
+        $assignedUser = User::find($request->assigned_to);
+        
+        if($assignedUser && $assignedUser->fcm_token != null){
+            try {
+                $messaging = Firebase::messaging();
+                
+                $message = CloudMessage::withTarget('token', $assignedUser->fcm_token)
+                    ->withNotification(Notification::create(
+                        'Yeni Görev Atandı! 🚀',
+                        'Sana yeni bir görev atandı: ' . $task->title
+                    ))
+                    ->withData(['task_id' => (string) $task->id]); // Mobilci için görev ID'si
+                    
+                $messaging->send($message);
+                
+            } catch (\Exception $e) {
+                // Firebase kaynaklı (şifre, ağ vb.) bir hata olursa sistemi çökertme, sadece logla
+                Log::error('Firebase Bildirim Hatası: ' . $e->getMessage());
+            }
+        }
+    }
 
         return response()->json([
             'succes'=>true,

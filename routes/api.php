@@ -30,4 +30,5 @@ Route::post('/tasks/{task}/files', [\App\Http\Controllers\Api\DocumentController
     // TagController Rotaları
     Route::post('/tags', [\App\Http\Controllers\Api\TagController::class, 'store']);
     Route::delete('/tags/{tag}', [\App\Http\Controllers\Api\TagController::class, 'destroy']);
+    Route::post('/update-fcm-token', [AuthController::class, 'updateFcmToken']);
 });
