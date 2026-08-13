@@ -17,6 +17,7 @@ use Kreait\Laravel\Firebase\Facades\Firebase;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 class TaskController extends Controller
 {
     public function index(Request $request){
@@ -86,7 +87,20 @@ class TaskController extends Controller
             'title' => 'required|string|max:255',
             'parent_id' => 'nullable|exists:tasks,id'
         ]);
-        
+        $userId = Auth::id();
+        if ((Auth::user()->role === 'admin' || Auth::user()->role === 'manager') && $request->has('user_id')) {
+            $userId = $request->user_id;
+        } 
+
+        $duplicateTask = Task::where('user_id', $userId)
+            ->where('title', $request->title)
+            ->exists();
+            
+        if($duplicateTask) {
+            throw new DuplicateTaskException();
+        }
+        DB::beginTransaction();
+        try {
         $task = new Task();
         $task->title = $request->title;
         $task->is_completed = false;
@@ -94,20 +108,8 @@ class TaskController extends Controller
         $task->due_date = $request->due_date;
         $task->parent_id = $request->parent_id;
         $task->assigned_to=$request->assigned_to;
-        
-        if ((Auth::user()->role === 'admin' || Auth::user()->role === 'manager') && $request->has('user_id')) {
-            $task->user_id = $request->user_id;
-        } else {
-            $task->user_id = Auth::id(); 
-        }
-
-        $duplicateTask = Task::where('user_id', $task->user_id)
-            ->where('title', $request->title)
-            ->exists();
-            
-        if($duplicateTask) {
-            throw new DuplicateTaskException(); // Exception'lar JSON API'de otomatik olarak anlamlı hata döner.
-        }
+        $task->user_id = $userId;
+       
 
         $task->save();
 
@@ -158,12 +160,20 @@ class TaskController extends Controller
     }catch(\Exception $e) {
         \Illuminate\Support\Facades\Log::error('Firestore Yazma Hatası: ' . $e->getMessage());
     }
+    DB::commit();
 
         return response()->json([
             'succes'=>true,
             'message'=>'Görev başarıyla oluşturuldu',
             'task'=>$task
-        ],201);
+        ],201);}catch(\Exception $e) {
+            DB::rollBack();
+            Log::error('API Görev ekleme hatası: '. $e->getMessage());
+            return response()->json([
+                'success'=>false,
+                'message'=> 'Görev oluşturulurken sistemsel bir hata meydana geldi'
+            ],500);
+        }
         
     }
     public function destroy(Task $task){
@@ -185,14 +195,24 @@ class TaskController extends Controller
                 'message' => 'Sadece kendi ekibinizdeki kullanıcıların görevlerini silebilirsiniz.'
             ], 403);
         }
+        DB::beginTransaction();
+        try {
 
         // 3. Kural: Yetki kontrolünden geçenler görevi silebilir
         $task->delete();
+        DB::commit();
         
         return response()->json([
             'success' => true,
             'message' => 'Görev başarıyla silindi.'
-        ], 200);
+        ], 200);}catch(\Exception $e) {
+            DB::rollBack();
+            Log::error('API Görev silme hatası: '. $e->getMessage());
+            return response()->json([
+                'success'=> false,
+                'message'=> 'Görev silinirken sistemsel bir hata meydana geldi'
+            ],500);
+        }
         
     }
     public function update(Request $request, Task $task){
@@ -205,62 +225,73 @@ class TaskController extends Controller
                 return response()->json(['success' => false, 'message' => 'Bu görevi tamamlayabilmek için önce tüm alt görevleri bitirmelisiniz.'], 400);
             }
         }
+       DB::beginTransaction();
 
-        $task->is_completed = !$task->is_completed;
-        $task->save();
+        try {
+            $task->is_completed = !$task->is_completed;
+            $task->save();
 
-        if($request->has('tags')){
-            $task->tags()->sync($request->tags);
-        } else {
-            $task->tags()->detach();
-        }
-        
-        if ($task->is_completed && Auth::user()->role === 'user' && Auth::user()->manager_id) {
-            $manager = User::find(Auth::user()->manager_id); 
-            if ($manager) {
-                $manager->notify(new TaskCompletedNotification($task, Auth::user()));
+            if($request->has('tags')){
+                $task->tags()->sync($request->tags);
+            } else {
+                $task->tags()->detach();
+            }
+            
+            if ($task->is_completed && Auth::user()->role === 'user' && Auth::user()->manager_id) {
+                $manager = User::find(Auth::user()->manager_id); 
+                
+                if ($manager) {
+                    $manager->notify(new TaskCompletedNotification($task, Auth::user()));
 
-                if($manager->fcm_token != null){
+                    if($manager->fcm_token != null){
+                        try {
+                            $messaging = Firebase::messaging();
+                            $message = CloudMessage::withTarget('token', $manager->fcm_token)
+                                ->withNotification(Notification::create(
+                                    'Görev Tamamlandı! ✅',
+                                    'Ekibindeki bir kullanıcı şu görevi tamamladı: ' . $task->title
+                                ))
+                                ->withData(['task_id' => (string) $task->id]); 
+                                
+                            $messaging->send($message);
+                        } catch (\Exception $e) {
+                            Log::error('Manager Firebase Bildirim Hatası: ' . $e->getMessage());
+                        }
+                    }
+
+                
                     try {
-                        $messaging = Firebase::messaging();
-                        
-                        $message = CloudMessage::withTarget('token', $manager->fcm_token)
-                            ->withNotification(Notification::create(
-                                'Görev Tamamlandı! ✅',
-                                'Ekibindeki bir kullanıcı şu görevi tamamladı: ' . $task->title
-                            ))
-                            ->withData(['task_id' => (string) $task->id]); 
-                            
-                        $messaging->send($message);
-                        
+                        $firestore = \Kreait\Laravel\Firebase\Facades\Firebase::firestore()->database();
+                        $firestore->collection('notifications')->add([
+                            'user_id' => $manager->id, 
+                            'title' => 'Görev Tamamlandı! ✅',
+                            'message' => 'Ekibindeki bir kullanıcı şu görevi tamamladı: ' . $task->title,
+                            'task_id' => $task->id,
+                            'is_read' => false,
+                            'created_at' => now()->toDateTimeString()
+                        ]);
                     } catch (\Exception $e) {
-                        // Manager'ın token'ı sahteyse veya ağ koptuysa sistemi çökertme, logla geç
-                        Log::error('Manager Firebase Bildirim Hatası: ' . $e->getMessage());
+                        Log::error('Manager Firestore Yazma Hatası: ' . $e->getMessage());
                     }
                 }
             }
-        }
-            try {
-            $firestore = \Kreait\Laravel\Firebase\Facades\Firebase::firestore()->database();
-            
-            $firestore->collection('notifications')->add([
-                'user_id' => $manager->id, // Bildirim yöneticiye ait
-                'title' => 'Görev Tamamlandı! ✅',
-                'message' => 'Ekibindeki bir kullanıcı şu görevi tamamladı: ' . $task->title,
-                'task_id' => $task->id,
-                'is_read' => false,
-                'created_at' => now()->toDateTimeString()
-            ]);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Manager Firestore Yazma Hatası: ' . $e->getMessage());
-        }
-        
 
-        
-        return response()->json([
-            'succes'=>true,
-            'message'=>'Görev durumu başarıyla güncellendi',
-            'task'=>$task
-        ],200);
+            DB::commit();
+
+            return response()->json([
+                'success' => true, 
+                'message' => 'Görev durumu başarıyla güncellendi',
+                'task' => $task
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('API Görev Güncelleme Hatası: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Görev güncellenirken sistemsel bir hata meydana geldi.'
+            ], 500);
+        }
     }
 }

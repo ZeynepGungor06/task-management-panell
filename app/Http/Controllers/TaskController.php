@@ -11,6 +11,9 @@ use App\Exceptions\DuplicateTaskException;
 use App\Notifications\TaskAssignedNotification;
 use App\Notifications\TaskCompletedNotification;
 use App\Models\Tag;
+use Illuminate\Support\Facades\DB;  
+use Illuminate\Support\Facades\Log;
+
 
 class TaskController extends Controller
 {
@@ -93,27 +96,28 @@ class TaskController extends Controller
     {
         
         $request->validate(['title' => 'required|string|max:255' ,'parent_id' => 'nullable|exists:tasks,id']);
-        
-        $task = new Task();
-        $task->title = $request->title;
-        $task->is_completed = false;
-        $task->priority=$request->priority;
-        $task->due_date=$request->due_date;
-        $task->parent_id = $request->parent_id;
-        
+        $userId = Auth::id();
         // Admin veya Müdür birini seçtiyse ona ata, yoksa kendine ata
         if ((Auth::user()->role === 'admin' || Auth::user()->role === 'manager') && $request->has('user_id')) {
-            $task->user_id = $request->user_id;
-        } else {
-            $task->user_id = Auth::id(); 
-        }
-        $duplicateTask = Task::where('user_id', $task->user_id)
+            $userId = $request->user_id;
+        } 
+        $duplicateTask = Task::where('user_id', $userId)
             ->where('title', $request->title)
             ->exists();
             
         if($duplicateTask) {
             throw new DuplicateTaskException();
         }
+        DB::beginTransaction();
+        try{
+        $task = new Task();
+        $task->title = $request->title;
+        $task->is_completed = false;
+        $task->priority=$request->priority;
+        $task->due_date=$request->due_date;
+        $task->parent_id = $request->parent_id;
+        $task->user_id = $userId;
+       
 
         $task->save();
         if($request->has('tags')){
@@ -125,7 +129,12 @@ class TaskController extends Controller
                 $assignedUser->notify(new TaskAssignedNotification($task));
             }
         }
-        return back();
+        DB::commit();
+        return back();} catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Görev ekleme hatası: ' .$e->getMessage());
+            throw $e;
+        }
     }
 
     public function destroy(Task $task)
@@ -138,9 +147,17 @@ class TaskController extends Controller
         if(Auth::user()->role === "manager" && $task->user->manager_id!==Auth::id() && $task->user_id !== Auth::id()) {
             throw new UnauthorizedTaskAccessException("Sadece kendi ekibinizdeki kullanıcıların görevlerini silebilirsiniz .");
         }
+        DB::beginTransaction();
+        try {
+            DB::commit();
 
         $task->delete();
         return back();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Görev silme hatası: " .$e->getMessage());
+            throw $e;
+        }
     }
     
  public function update(Request $request, Task $task)
@@ -154,6 +171,8 @@ class TaskController extends Controller
             return back()->with('error','Bu görevi tamamlayabilmek için önce tüm alt görevleri bitirmelisiniz.');
         }
     }
+    DB::beginTransaction();
+    try {
         $task->is_completed = !$task->is_completed;
         $task->save();
         if($request->has('tags')){
@@ -173,8 +192,14 @@ class TaskController extends Controller
                 $manager->notify(new \App\Notifications\TaskCompletedNotification($task, Auth::user()));
             }
         }
+        DB::commit();
 
-        return back()->with('success','Görev durumu başarıyla güncellendi');
+        return back()->with('success','Görev durumu başarıyla güncellendi');}
+        catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Görev güncelleme hatası: ' .$e->getMessage());
+            throw $e;
+        }
     }
     public function updateDetails(Request $request,$id){
         if ($request->user()->role !== 'admin' && $request->user()->role !== 'manager') {
@@ -183,9 +208,18 @@ class TaskController extends Controller
         $request->validate(['priority'=>'required|in:low,medium,high','due_date'=>'nullable|date']);
         $task = \App\Models\Task::findOrFail($id);
         $task->priority = $request->priority;
+        DB::beginTransaction();
+        try {
         $task->due_date = $request->due_date;
         $task->save();
-        return back();
+        DB::commit();
+        return back();} catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Görev detay güncelleme hatası: ' .$e->getMessage());
+            throw $e;
+        }
+    
+
     }
     public function statistics(){
         $user = \Illuminate\Support\Facades\Auth::user();
