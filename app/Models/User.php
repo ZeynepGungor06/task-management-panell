@@ -25,6 +25,7 @@ class User extends Authenticatable
         'role',
         'admin_id',
         'fcm_token',
+        'manager_id',
     ];
 
     /**
