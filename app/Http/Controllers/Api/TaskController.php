@@ -24,11 +24,7 @@ class TaskController extends Controller
         $user = Auth::user();
         $selectedUserId = Auth::id();
 
-        if($user && $user->role === 'admin'){
-            $users = User::all();
-        } elseif($user->role === 'manager'){
-            $users = User::where('manager_id', $user->id)->get();
-        }
+        
         
         // DÜZELTME: Süslü parantez hemen burada kapanmalı! Sadece ID atamasını yapıp çıkmalı.
         if(($user->role === 'admin' || $user->role === 'manager') && $request->has('user_id')){
@@ -293,5 +289,66 @@ class TaskController extends Controller
                 'message' => 'Görev güncellenirken sistemsel bir hata meydana geldi.'
             ], 500);
         }
+    }
+    public function updateDetails(Request $request,$id){
+        if ($request->user()->role !== 'admin' && $request->user()->role !== 'manager') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Görev detaylarını sadece yöneticiler değiştirebilir.'
+            ], 403); // 403: Forbidden (Yasak)
+        }
+        
+    
+        $request->validate([
+            'title' => 'required|string|max:255', 
+            'priority' => 'required|in:low,medium,high',
+            'due_date' => 'nullable|date'
+        ]);
+        
+        $task = \App\Models\Task::findOrFail($id);
+        DB::beginTransaction();
+        try {
+            $task->title=$request->title;
+            $task->priority=$request->priority;
+            $task->due_date=$request->due_date;
+            $task->save();
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Görev detayları başarıyla güncellendi.',
+                'task' => $task 
+            ], 200);
+
+
+
+        }catch(\Exception $e){
+             DB::rollBack();
+            Log::error('API Görev Detay Güncelleme Hatası: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Görev detayları güncellenirken sistemsel bir hata meydana geldi.'
+            ], 500);
+        }
+    }
+    public function teamMembers(Request $request)
+    {
+        $user = $request->user();
+        $users = collect(); 
+
+        if($user->role === 'admin'){
+        
+            $users = User::select('id', 'name', 'email', 'role')->get();
+        } elseif($user->role === 'manager'){
+            
+            $users = User::where('manager_id', $user->id)
+                         ->select('id', 'name', 'email', 'role')
+                         ->get();
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $users
+        ], 200);
     }
 }

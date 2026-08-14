@@ -205,11 +205,13 @@ class TaskController extends Controller
         if ($request->user()->role !== 'admin' && $request->user()->role !== 'manager') {
             abort(403, 'Görev detaylarını sadece yöneticiler değiştirebilir.');
         }
-        $request->validate(['priority'=>'required|in:low,medium,high','due_date'=>'nullable|date']);
+        $request->validate(['title'=>'required:string:max:25','priority'=>'required|in:low,medium,high','due_date'=>'nullable|date']);
         $task = \App\Models\Task::findOrFail($id);
-        $task->priority = $request->priority;
+        
         DB::beginTransaction();
         try {
+            $task->title=$request->title;
+         $task->priority = $request->priority;
         $task->due_date = $request->due_date;
         $task->save();
         DB::commit();

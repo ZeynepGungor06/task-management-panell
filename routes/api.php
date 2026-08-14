@@ -54,4 +54,6 @@ Route::post('/tasks/{task}/files', [\App\Http\Controllers\Api\DocumentController
     });
     Route::get('/tags', [\App\Http\Controllers\Api\TagController::class, 'index']);
    Route::post('/logout', [AuthController::class, 'logout']);
+   Route::put('/tasks/{id}/details', [\App\Http\Controllers\Api\TaskController::class, 'updateDetails']);
+   Route::get('/team-members', [\App\Http\Controllers\Api\TaskController::class, 'teamMembers']);
 });
