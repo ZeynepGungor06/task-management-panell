@@ -3,11 +3,16 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\DocumentController;
+use App\Http\Controllers\Api\CommentController;
+use App\Http\Controllers\Api\TagController;
+
 
 Route::get('/ping', function () {
     return response()->json(['mesaj' => 'Laravel ayakta ve çalışıyor!', 'zaman' => now()]);
 });
 Route::post('/login', [AuthController::class, 'login']);
+ Route::post('/register', [AuthController::class, 'register']);
 Route::middleware('auth:sanctum')->group(function () {
 Route::get('/profil',function(Request $request){
     return $request->user();
@@ -46,4 +51,5 @@ Route::post('/tasks/{task}/files', [\App\Http\Controllers\Api\DocumentController
 
         return response()->json(['message' => 'Test hatırlatıcısı başarıyla fırlatıldı!']);
     });
+   
 });
