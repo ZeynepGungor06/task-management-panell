@@ -50,6 +50,8 @@ Route::post('/tasks/{task}/files', [\App\Http\Controllers\Api\DocumentController
         }
 
         return response()->json(['message' => 'Test hatırlatıcısı başarıyla fırlatıldı!']);
+        
     });
-   
+    Route::get('/tags', [\App\Http\Controllers\Api\TagController::class, 'index']);
+   Route::post('/logout', [AuthController::class, 'logout']);
 });

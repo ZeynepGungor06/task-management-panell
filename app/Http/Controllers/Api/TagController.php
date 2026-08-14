@@ -8,6 +8,13 @@ use App\Models\Tag;
 
 class TagController extends Controller
 {
+    public function index(){
+        $tags=Tag::all();
+        return response()->json([
+'success'=>true,
+'data'=>$tags
+        ],200);
+    }
     public function store(Request $request){
         $request->validate([
             'name' => 'required|string|max:50',
