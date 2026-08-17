@@ -43,7 +43,7 @@ class CommentController extends Controller
 
     public function toggleSpam(Request $request, $id)
     {
-        if ($request->user()->role !== 'ADMİN') {
+        if ($request->user()->role !== 'admin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Bu işlem için yetkiniz bulunmamaktadır.'

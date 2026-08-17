@@ -305,9 +305,10 @@ class TaskController extends Controller
             'due_date' => 'nullable|date'
         ]);
         
-        $task = \App\Models\Task::findOrFail($id);
+    
         DB::beginTransaction();
         try {
+            $task=\App\Models\Task::where('id',$id)->lockForUpdate()->firstOrFail();
             $task->title=$request->title;
             $task->priority=$request->priority;
             $task->due_date=$request->due_date;
@@ -321,7 +322,15 @@ class TaskController extends Controller
 
 
 
-        }catch(\Exception $e){
+        }
+        catch(\Illuminate\Database\Eloquent\ModelNotFoundException $e){
+            DB::rollBack();
+            return response()->json([
+                'success'=>false,
+                'message'=>'Belirtilen görev bulunamadı'
+            ],404);
+        }
+        catch(\Exception $e){
              DB::rollBack();
             Log::error('API Görev Detay Güncelleme Hatası: ' . $e->getMessage());
             
