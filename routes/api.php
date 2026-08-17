@@ -56,4 +56,12 @@ Route::post('/tasks/{task}/files', [\App\Http\Controllers\Api\DocumentController
    Route::post('/logout', [AuthController::class, 'logout']);
    Route::put('/tasks/{id}/details', [\App\Http\Controllers\Api\TaskController::class, 'updateDetails']);
    Route::get('/team-members', [\App\Http\Controllers\Api\TaskController::class, 'teamMembers']);
+   Route::put('/profile', [\App\Http\Controllers\Api\AuthController::class, 'updateProfile']);
+   Route::get('/notifications', function (Request $request) {
+    return response()->json([
+        'success' => true,
+        'notifications' => $request->user()->notifications
+    ]);
+});
+   
 });

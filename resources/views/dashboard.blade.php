@@ -157,54 +157,63 @@
 </head>
 <body>
 
-    <!-- Üst Menü -->
-    <div class="navbar">
-        <h1>To-Do List 
-            <span style="font-size: 14px; color: #6b8299; margin-left:10px;">
-                ({{ $user->name }} - {{ ucfirst($user->role) }})
-            </span>
-        </h1>
-        <form action="{{ route('dashboard') }}" method="GET" class="d-flex gap-2" style="width:320px ;">
-           @if(request('user_id'))
-                <input type="hidden" name="user_id" value="{{ request('user_id') }}">
-            @endif
-          <div class="input-group input-group-sm">
-            <input type="text"
-            name="search"
-            class="form-control"
-            placeholder="Görev ara"
-            value= "{{ request('search') }}"
-            style="border-color: #d1e3f2;"
-            >
-            <button class="btn" type="submit" style="background-color: #5b8fb9; color: white;">
-                    <i class="bi bi-search"></i>
-                </button>
-                <button class="btn btn-outline-secondary ms-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#filterOffcanvas" style="background-color: #fff; color: #5b8fb9; border-color: #d1e3f2;">
-                    <i class="bi bi-funnel"></i> Filtrele
-                </button>
-                @if(request('search'))
-                    <a href="{{ route('dashboard', request()->only('user_id')) }}" class="btn btn-outline-danger" title="Aramayı Temizle">
-                        <i class="bi bi-x-circle"></i>
-                    </a>
-                @endif
-          </div>
-
-
-        </form>
+  <!-- Üst Menü -->
+    <div class="navbar w-100 mb-4" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background-color: #f8f9fa; border-bottom: 1px solid #e9ecef;">
         
-        <div style="display: flex; align-items: center; gap: 20px;">
-            <!-- SADECE YÖNETİCİLER İÇİN İSTATİSTİKLER BUTONU -->
+        <!-- 1. SOL KUTU: Başlık ve Profil Butonu -->
+        <div class="d-flex align-items-center gap-3">
+            <h1 class="m-0" style="font-size: 1.5rem; color: #5b8fb9;">Task Management System
+                <span style="font-size: 14px; color: #6b8299; margin-left:10px;">
+                    ({{ $user->name }} - {{ ucfirst($user->role) }})
+                </span>
+            </h1>
+            
+            <a href="{{ route('profile.edit') }}" class="btn btn-sm" style="border: 1px solid #d1e3f2; color: #5b8fb9; background-color: #fff;">
+                <i class="bi bi-person-fill"></i> Profilim
+            </a>
+        </div>
+
+        <!-- 2. SAĞ KUTU: Arama, İstatistikler, Bildirimler ve Çıkış -->
+        <div class="d-flex align-items-center gap-3">
+            
+            <!-- Arama ve Filtreleme Formu -->
+            <form action="{{ route('dashboard') }}" method="GET" class="d-flex gap-2 mb-0" style="width:320px;">
+                @if(request('user_id'))
+                    <input type="hidden" name="user_id" value="{{ request('user_id') }}">
+                @endif
+                <div class="input-group input-group-sm">
+                    <input type="text"
+                    name="search"
+                    class="form-control"
+                    placeholder="Görev ara"
+                    value="{{ request('search') }}"
+                    style="border-color: #d1e3f2;"
+                    >
+                    <button class="btn" type="submit" style="background-color: #5b8fb9; color: white;">
+                        <i class="bi bi-search"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary ms-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#filterOffcanvas" style="background-color: #fff; color: #5b8fb9; border-color: #d1e3f2;">
+                        <i class="bi bi-funnel"></i> Filtrele
+                    </button>
+                    @if(request('search'))
+                        <a href="{{ route('dashboard', request()->only('user_id')) }}" class="btn btn-outline-danger ms-1" title="Aramayı Temizle">
+                            <i class="bi bi-x-circle"></i>
+                        </a>
+                    @endif
+                </div>
+            </form>
+            
+            <!-- İstatistikler Butonu (Sadece Yöneticiler) -->
             @if(auth()->user()->role === 'admin' || auth()->user()->role === 'manager')
-                <a href="{{ route('statistics') }}" class="btn" style="background-color: #5b8fb9; color: white; font-weight: bold; border: none;">
+                <a href="{{ route('statistics') }}" class="btn btn-sm" style="background-color: #5b8fb9; color: white; font-weight: bold; border: none;">
                     <i class="bi bi-bar-chart-fill"></i> İstatistikler
                 </a>
             @endif
             
-            <!-- BİLDİRİM ZİLİ (BOOTSTRAP DROPDOWN) -->
+            <!-- Bildirim Zili (Bootstrap Dropdown) -->
             <div class="dropdown">
-                <button class="btn btn-light position-relative" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: transparent;">
+                <button class="btn btn-light position-relative p-1" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: transparent;">
                     <i class="bi bi-bell-fill" style="font-size: 1.2rem; color: #5b8fb9;"></i>
-                    <!-- Okunmamış Bildirim Sayısı -->
                     @if(auth()->user()->unreadNotifications->count() > 0)
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
                             {{ auth()->user()->unreadNotifications->count() }}
@@ -234,18 +243,16 @@
                 </ul>
             </div>
             
-
-            <!-- ÇIKIŞ YAP BUTONU -->
+            <!-- Çıkış Yap Butonu -->
             <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
                 @csrf
-                <button type="submit" class="logout-btn">Çıkış Yap</button>
+                <button type="submit" class="logout-btn btn btn-sm btn-danger" style="font-weight: bold;">Çıkış Yap</button>
             </form>
+            
         </div>
     </div>
 
     <div class="container">
-       
-        
         <!-- SOL TARAF: BÜYÜK KUTU (Görev Listesi) -->
         <div class="left-panel">
             @if(session('breadcrumb_error'))

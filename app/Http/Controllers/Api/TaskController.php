@@ -143,15 +143,15 @@ class TaskController extends Controller
         }
     }
     try{
+        $targetId = $assignedUser ? $assignedUser->id : $userId;
         $firestore=$firestore = \Kreait\Laravel\Firebase\Facades\Firebase::firestore()->database();
         $firestore->collection('notifications')->add([
-            'user_id'=>$assignedUser->id,
-            'title'=>'Yeni görev atandı',
-            'message'=>'Sana yeni bir görev atandı: '. $task->title,
-            'task_id'=>$task->id,
-            'is_read'=>false,
-            'created_at'=>now()->toDateTimeString()
-
+            'user_id' => $targetId,
+            'title' => 'Yeni görev atandı',
+            'message' => 'Sana yeni bir görev atandı: '. $task->title,
+            'task_id' => $task->id,
+            'is_read' => false,
+            'created_at' => now()->toDateTimeString()
         ]);
     }catch(\Exception $e) {
         \Illuminate\Support\Facades\Log::error('Firestore Yazma Hatası: ' . $e->getMessage());
@@ -233,45 +233,62 @@ class TaskController extends Controller
                 $task->tags()->detach();
             }
             
-            if ($task->is_completed && Auth::user()->role === 'user' && Auth::user()->manager_id) {
-                $manager = User::find(Auth::user()->manager_id); 
-                
-                if ($manager) {
-                    $manager->notify(new TaskCompletedNotification($task, Auth::user()));
+           // ... (Üst kısımdaki etiket (tags) kodları aynı kalacak) ...
 
-                    if($manager->fcm_token != null){
+            // Görev tamamlandıysa bildirim işlemlerini başlat
+            if ($task->is_completed) {
+                
+                // Bildirimin gideceği kişiyi belirle (Örn: Görevi oluşturan kişiye veya yöneticiye)
+                // Eğer user ise yöneticisine, değilse görevi ilk oluşturan kişiye bildirim gitsin.
+                $notifyUserId = (Auth::user()->role === 'user' && Auth::user()->manager_id) 
+                                ? Auth::user()->manager_id 
+                                : $task->user_id;
+
+                $targetUser = User::find($notifyUserId);
+
+                if ($targetUser) {
+                    
+                    // 1. Laravel İçi Bildirim (Ve Arka Plan Kuyruğu)
+                    $targetUser->notify(new TaskCompletedNotification($task, Auth::user()));
+
+                    // 2. Firebase Push Notification (Mobil Cihaza Bildirim)
+                    if ($targetUser->fcm_token != null) {
                         try {
                             $messaging = Firebase::messaging();
-                            $message = CloudMessage::withTarget('token', $manager->fcm_token)
+                            $message = CloudMessage::withTarget('token', $targetUser->fcm_token)
                                 ->withNotification(Notification::create(
                                     'Görev Tamamlandı! ✅',
-                                    'Ekibindeki bir kullanıcı şu görevi tamamladı: ' . $task->title
+                                    Auth::user()->name . ' şu görevi tamamladı: ' . $task->title
                                 ))
                                 ->withData(['task_id' => (string) $task->id]); 
                                 
                             $messaging->send($message);
                         } catch (\Exception $e) {
-                            Log::error('Manager Firebase Bildirim Hatası: ' . $e->getMessage());
+                            Log::error('Firebase Push Bildirim Hatası: ' . $e->getMessage());
                         }
                     }
 
-                
+                    // 3. Firestore Veritabanına Yazma (Mobilin Dinlediği Kısım)
                     try {
+                        // Kesin yol garantisi
+                         putenv('GOOGLE_APPLICATION_CREDENTIALS=' . storage_path('app/firebase-auth.json'));
                         $firestore = \Kreait\Laravel\Firebase\Facades\Firebase::firestore()->database();
                         $firestore->collection('notifications')->add([
-                            'user_id' => $manager->id, 
+                            'user_id' => $targetUser->id, 
                             'title' => 'Görev Tamamlandı! ✅',
-                            'message' => 'Ekibindeki bir kullanıcı şu görevi tamamladı: ' . $task->title,
+                            'message' => Auth::user()->name . ' şu görevi tamamladı: ' . $task->title,
                             'task_id' => $task->id,
                             'is_read' => false,
                             'created_at' => now()->toDateTimeString()
                         ]);
                     } catch (\Exception $e) {
-                        Log::error('Manager Firestore Yazma Hatası: ' . $e->getMessage());
+                        Log::error('Firestore Yazma Hatası: ' . $e->getMessage());
                     }
                 }
             }
 
+            
+            // ... (Alt kısımdaki return kodları aynı kalacak) ...
             DB::commit();
 
             return response()->json([

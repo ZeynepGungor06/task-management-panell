@@ -22,6 +22,8 @@ Route::get('/register', [AuthController::class, 'showRegister'])->name('register
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/statistics',[TaskController::class,'statistics'])->name('statistics');
+Route::get('/profile', [App\Http\Controllers\AuthController::class, 'editProfile'])->name('profile.edit');
+   Route::put('/profile', [App\Http\Controllers\AuthController::class, 'updateProfileWeb'])->name('profile.update');
 
 // Kullanıcı ve Admin Panelleri (İleride yetkiye göre burayı korumaya alacağız)
 Route::get('/dashboard', [TaskController::class, 'index'])->name('dashboard');

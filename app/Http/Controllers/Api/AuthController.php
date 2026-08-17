@@ -91,5 +91,21 @@ class AuthController extends Controller
             'message'=>'FCM Token başarıyla kaydedildi'
         ]);
     }
+    public function updateProfile(Request $request){
+        $user=$request->user();
+        $request->validate([
+            'name'=>'required|string|max:255',
+            'email'=>'required|string|email|max:255|uniques:users,email,' . $user->id,
+        ]);
+
+        $user->name=$request->name;
+        $user->email=$request->email;
+        $user->save();
+        return response()->json([
+            'success'=>true,
+            'message'=>'Profil bilgileri başarıyla güncellendi',
+            'user'=>$user
+        ],200);
+    }
     
 }

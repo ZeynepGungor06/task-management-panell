@@ -44,6 +44,21 @@ class TaskReminderNotification extends Notification
                 \Illuminate\Support\Facades\Log::error('Hatırlatıcı Firebase Hatası: ' . $e->getMessage());
             }
         }
+        try {
+            $firestore = \Kreait\Laravel\Firebase\Facades\Firebase::firestore()->database();
+            
+            
+            $firestore->collection('notifications')->add([
+                'user_id' => $notifiable->id, 
+                'title' => 'Teslim Tarihi Yaklaşıyor! ⏳',
+                'message' => "'" . $this->task->title . "' adlı görevin teslimine 1 gün kaldı!",
+                'task_id' => $this->task->id,
+                'is_read' => false,
+                'created_at' => now()->toDateTimeString()
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Hatırlatıcı Firestore Yazma Hatası: ' . $e->getMessage());
+        }
 
 
         return [

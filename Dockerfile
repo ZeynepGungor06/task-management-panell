@@ -12,6 +12,11 @@ RUN docker-php-ext-install pdo pdo_mysql zip
 
 
 RUN a2enmod rewrite
+RUN apt-get update && apt-get install -y \
+    autoconf \
+    zlib1g-dev \
+    && pecl install grpc \
+    && docker-php-ext-enable grpc
 
 
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public

@@ -84,4 +84,20 @@ class AuthController extends Controller
         
         return redirect()->route('login');
     }
+    public function editProfile(){
+        $user=auth()->user();
+        return view('profile',compact('user'));
+    }
+    public function updateProfileWeb(Request $request){
+        $user = auth()->user();
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+        ]);
+        // 2. Güncelle ve Kaydet
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->save();
+        return back()->with('success', 'Profil bilgileriniz başarıyla güncellendi.');
+    }
 }
