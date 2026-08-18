@@ -15,6 +15,7 @@ Route::post('/login', [AuthController::class, 'login']);
  Route::post('/register', [AuthController::class, 'register']);
  // routes/api.php
 Route::post('/forgot-password/send-otp', [App\Http\Controllers\Api\AuthController::class, 'sendResetOtp']);
+Route::post('/forgot-password/reset', [App\Http\Controllers\Api\AuthController::class, 'resetPasswordWithOtp']);
 Route::middleware('auth:sanctum')->group(function () {
 Route::get('/profil',function(Request $request){
     return $request->user();
