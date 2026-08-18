@@ -144,6 +144,30 @@ class AuthController extends Controller
             'success'=>true,
             'message'=>'Şifre sıfırlama kodu e-posta adresinize başarıyla gönderildi.'
         ],200);
+    } 
+    public function resetPasswordWithOtp(Request $request){
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'otp_code' => 'required|string',
+            'new_password' => 'required|string|min:6|confirmed',
+        ]);
+        $email=$request->email;
+        $cacheKey='password_reset_otp_' . $email;
+
+        if(!Cache::has($cacheKey) || Cache::get($cacheKey) !==$request->otp_code){
+            return response()->json([
+                'success'=>false,
+                'message'=>'Girilen kod hatalı veya süresi dolmuş'
+            ],400);
+        }
+        $user = User::where('email', $email)->first();
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+        Cache::forget($cacheKey);
+        return response()->json([
+            'success'=>true,
+            'message'=>'Şifre sıfırlandı. Ynei şifrenizle giriş yapabilirsiniz'
+        ],200);
     }
 
     
