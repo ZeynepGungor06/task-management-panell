@@ -119,7 +119,7 @@ class TaskController extends Controller
                 $assignedUser->notify(new TaskAssignedNotification($task));
             }
         }
-
+        $assinedUser=null;
         if ($request->filled('assigned_to')) {
         $assignedUser = User::find($request->assigned_to);
         
@@ -143,6 +143,7 @@ class TaskController extends Controller
         }
     }
     try{
+        putenv('GOOGLE_APPLICATION_CREDENTIALS=' . storage_path('app/firebase-auth.json'));
         $targetId = $assignedUser ? $assignedUser->id : $userId;
         $firestore=$firestore = \Kreait\Laravel\Firebase\Facades\Firebase::firestore()->database();
         $firestore->collection('notifications')->add([
