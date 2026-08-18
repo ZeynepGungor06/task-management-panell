@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Cache;
+use App\Mail\ResetPasswordOtpMail;
 class AuthController extends Controller
 {
     public function login(Request $request){
@@ -125,6 +128,21 @@ class AuthController extends Controller
         return response()->json([
             'success'=>true,
             'message'=>'Şifreniz başarıyla güncellendi.'
+        ],200);
+    }
+    public function sendResetOtp(Request $request){
+        $request->validate([
+            'email'=>'required|email|exists:users,email'
+        ]);
+        $email=$request->email;
+        $otpCode=(string) rand(100000, 999999);
+
+        Cache::put('password_reset_otp_' . $email, $otpCode, now()->addMinutes(3));
+        Mail::to($email)->send(new ResetPasswordOtpMail($otpCode));
+
+        return response()->json([
+            'success'=>true,
+            'message'=>'Şifre sıfırlama kodu e-posta adresinize başarıyla gönderildi.'
         ],200);
     }
 
