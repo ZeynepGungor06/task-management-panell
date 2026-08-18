@@ -119,7 +119,13 @@ class TaskController extends Controller
                 $assignedUser->notify(new TaskAssignedNotification($task));
             }
         }
-        $assinedUser=null;
+
+        // DÜZELTME: $assignedUser artık if bloğundan ÖNCE null olarak
+        // tanımlanıyor. Böylece 'assigned_to' hiç gönderilmediğinde
+        // (kişi kendine görev eklerken) PHP "tanımsız değişken" uyarısı
+        // vermeden, aşağıdaki ternary ifadesi güvenle null'a düşüyor.
+        $assignedUser = null;
+
         if ($request->filled('assigned_to')) {
         $assignedUser = User::find($request->assigned_to);
         
@@ -143,8 +149,11 @@ class TaskController extends Controller
         }
     }
     try{
-        putenv('GOOGLE_APPLICATION_CREDENTIALS=' . storage_path('app/firebase-auth.json'));
         $targetId = $assignedUser ? $assignedUser->id : $userId;
+        // DÜZELTME: update() fonksiyonundaki gibi, kimlik dosyasının
+        // tam yolunu açıkça belirtiyoruz - yoksa Firestore "Project ID
+        // bulunamadı" hatası veriyordu.
+        putenv('GOOGLE_APPLICATION_CREDENTIALS=' . storage_path('app/firebase-auth.json'));
         $firestore=$firestore = \Kreait\Laravel\Firebase\Facades\Firebase::firestore()->database();
         $firestore->collection('notifications')->add([
             'user_id' => $targetId,
@@ -363,13 +372,17 @@ class TaskController extends Controller
         $user = $request->user();
         $users = collect(); 
 
+        // DÜZELTME: select listesine 'manager_id' eklendi. Mobil
+        // tarafta istatistik ekranında "hangi kullanıcı hangi
+        // müdüre bağlı" ilişkisini kurabilmek için bu alana ihtiyaç
+        // vardı, önceden hiç dönmüyordu.
         if($user->role === 'admin'){
         
-            $users = User::select('id', 'name', 'email', 'role')->get();
+            $users = User::select('id', 'name', 'email', 'role', 'manager_id')->get();
         } elseif($user->role === 'manager'){
             
             $users = User::where('manager_id', $user->id)
-                         ->select('id', 'name', 'email', 'role')
+                         ->select('id', 'name', 'email', 'role', 'manager_id')
                          ->get();
         }
 
