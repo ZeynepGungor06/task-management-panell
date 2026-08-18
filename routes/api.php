@@ -63,5 +63,6 @@ Route::post('/tasks/{task}/files', [\App\Http\Controllers\Api\DocumentController
         'notifications' => $request->user()->notifications
     ]);
 });
+Route::post('/change-password', [AuthController::class, 'changePassword']);
    
 });

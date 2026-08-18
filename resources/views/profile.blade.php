@@ -116,6 +116,55 @@
                 
             </div>
         </div>
+        <div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0">Şifre Güncelle</h5>
+    </div>
+    <div class="card-body">
+        
+        <!-- Başarı Mesajını Gösterme Alanı -->
+        @if (session('success'))
+            <div class="alert alert-success">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        <!-- Laravel Validasyon Hatalarını Gösterme Alanı -->
+        @if ($errors->any())
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <!-- Form doğrudan POST isteği atacak -->
+        <form action="{{ route('password.update.web') }}" method="POST">
+            @csrf <!-- Bu satır Laravel'de form güvenliği için zorunludur -->
+
+            <div class="mb-3">
+                <label for="old_password" class="form-label">Mevcut Şifre</label>
+                <input type="password" class="form-control" name="old_password" id="old_password" required>
+            </div>
+            
+            <div class="mb-3">
+                <label for="new_password" class="form-label">Yeni Şifre</label>
+                <!-- DİKKAT: name="new_password" olmalı -->
+                <input type="password" class="form-control" name="new_password" id="new_password" required>
+            </div>
+            
+            <div class="mb-3">
+                <label for="new_password_confirmation" class="form-label">Yeni Şifre (Tekrar)</label>
+                <!-- DİKKAT: name="new_password_confirmation" olmalı -->
+                <input type="password" class="form-control" name="new_password_confirmation" id="new_password_confirmation" required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Şifreyi Güncelle</button>
+        </form>
+    </div>
+</div>
     </div>
 
     <!-- Bootstrap JS (Menüler vb. için) -->

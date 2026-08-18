@@ -81,3 +81,4 @@ Route::delete('/tags/{tag}', [TagController::class, 'destroy'])->name('tags.dest
 });
 
 Route::get('/dashboard', [TaskController::class, 'index'])->middleware('auth')->name('dashboard');
+Route::post('/profil/sifre-guncelle', [App\Http\Controllers\AuthController::class, 'changePasswordWeb'])->name('password.update.web');

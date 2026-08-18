@@ -85,11 +85,13 @@ class AuthController extends Controller
         return redirect()->route('login');
     }
     public function editProfile(){
-        $user=auth()->user();
+       /** @var \App\Models\User $user */
+        $user = Auth::user();
         return view('profile',compact('user'));
     }
     public function updateProfileWeb(Request $request){
-        $user = auth()->user();
+       /** @var \App\Models\User $user */
+        $user = $request->user();
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
@@ -99,5 +101,24 @@ class AuthController extends Controller
         $user->email = $request->email;
         $user->save();
         return back()->with('success', 'Profil bilgileriniz başarıyla güncellendi.');
+    }
+    public function changePasswordWeb(Request $request){
+        $request->validate([
+            'old_password'=>'required',
+            'new_password'=>'required|min:6|confirmed',
+
+        ]
+        );
+        if (!Hash::check($request->old_password, Auth::user()->password)) {
+        
+        return back()->withErrors(['old_password' => 'Mevcut şifreniz hatalı. Lütfen tekrar deneyin.']);
+       
+    }
+    /** @var \App\Models\User $user */
+    $user = Auth::user();
+    $user->password = Hash::make($request->new_password);
+    $user->save();
+    return back()->with('success','Şifreniz başarıyla güncellendi');
+
     }
 }

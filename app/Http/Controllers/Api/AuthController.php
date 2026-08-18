@@ -107,5 +107,26 @@ class AuthController extends Controller
             'user'=>$user
         ],200);
     }
+    public function changePassword(Request $request){
+        $request->validate([
+            'old_password'=>'required',
+            'new_password'=>'required|min:6|confirmed',
+        ]);
+        $user=$request->user();
+        if(!Hash::check($request->old_password,$user->password)){
+            return response()->json([
+
+            'success'=>false,
+            'message'=>'Şifre Hatalı! Lütfen tekrar deneyin.'
+            ],400);
+        }
+        $user->password=Hash::make($request->new_password);
+        $user->save();
+        return response()->json([
+            'success'=>true,
+            'message'=>'Şifreniz başarıyla güncellendi.'
+        ],200);
+    }
+
     
 }
