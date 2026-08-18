@@ -67,5 +67,5 @@ Route::post('/tasks/{task}/files', [\App\Http\Controllers\Api\DocumentController
     ]);
 });
 Route::post('/change-password', [AuthController::class, 'changePassword']);
-   
+   Route::post('/notifications/{id}/read', function (Request $request, $id) { $notification = $request->user()->notifications()->findOrFail($id); $notification->markAsRead(); return response()->json(['success' => true]); });
 });
