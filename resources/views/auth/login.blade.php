@@ -85,12 +85,41 @@
             margin-bottom: 16px;
             text-align: center;
         }
+        /* YENİ: Başarı mesajı için stil */
+        .success-msg {
+            background-color: #eaffea;
+            color: #28a745;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        /* YENİ: Şifremi unuttum linki stili */
+        .forgot-password {
+            display: block;
+            text-align: right;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #72aee6;
+            text-decoration: none;
+        }
+        .forgot-password:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <div class="card">
         <h2>Sisteme Giriş Yap</h2>
         
+        <!-- YENİ: Şifre başarıyla sıfırlandığında çıkacak yeşil mesaj kutusu -->
+        @if(session('success'))
+            <div class="success-msg">
+                {{ session('success') }}
+            </div>
+        @endif
+
         @if($errors->any())
             <div class="error">
                 {{ $errors->first() }}
@@ -106,7 +135,11 @@
             <div class="form-group">
                 <label>Şifre</label>
                 <input type="password" name="password" required placeholder="••••••••">
+                
+                <!-- YENİ: Şifremi Unuttum Linki (Şifre kutusunun hemen altında, sağa dayalı) -->
+                <a href="{{ route('password.forgot.form') }}" class="forgot-password">Şifremi unuttum</a>
             </div>
+            
             <button type="submit" class="btn">Giriş Yap</button>
         </form>
         <a href="{{ route('register') }}" class="link">Hesabın yok mu? Yeni Kayıt Oluştur</a>

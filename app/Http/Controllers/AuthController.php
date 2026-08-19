@@ -121,4 +121,51 @@ class AuthController extends Controller
     return back()->with('success','Şifreniz başarıyla güncellendi');
 
     }
+    public function showForgotPasswordForm(){
+        return view('auth.forgot-password');
+    }
+    public function sendResetOtpWeb(Request $request){
+        $request->validate([
+            'email'=>'required|email|exists:users,email'
+        ],[
+            'email.exists'=>'Bu e-posta adresi sistemimizde kayıtlı değil.'
+        ]);
+        $email=$request->email;
+        $otpCode=(string) rand(100000,999999);
+        \Illuminate\Support\Facades\Cache::put('password_reset_otp_' . $email, $otpCode, now()->addMinutes(3));
+        \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\ResetPasswordOtpMail($otpCode));
+
+        return redirect()->route('password.reset.form')
+        ->with('reset_email',$email)
+        ->with('success','Şifre sıfırlama kodu e-posta adresinize gönderildi.');
+
+
+    }
+    public function showResetPasswordForm(){
+        if(!session('reset_email')){
+            return redirect()->route('password.forgot.form');
+        }
+        return view('auth.reset-password');
+    }
+    public function resetPasswordWithOtpWeb(Request $request){
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'otp_code' => 'required|string',
+            'new_password' => 'required|string|min:6|confirmed',
+            
+        
+        ]);
+        $email = $request->email;
+        $cacheKey = 'password_reset_otp_' . $email;
+        if (!\Illuminate\Support\Facades\Cache::has($cacheKey) || \Illuminate\Support\Facades\Cache::get($cacheKey) !== $request->otp_code) {
+            return back()
+                ->withErrors(['otp_code' => 'Girdiğiniz kod hatalı veya süresi dolmuş.'])
+                ->with('reset_email', $email); 
+        }
+        $user = \App\Models\User::where('email', $email)->first();
+        $user->password = \Illuminate\Support\Facades\Hash::make($request->new_password);
+        $user->save();
+        \Illuminate\Support\Facades\Cache::forget($cacheKey);
+        return redirect()->route('login')->with('success', 'Şifreniz başarıyla sıfırlandı. Yeni şifrenizle giriş yapabilirsiniz.');
+    }
 }

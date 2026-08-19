@@ -82,3 +82,14 @@ Route::delete('/tags/{tag}', [TagController::class, 'destroy'])->name('tags.dest
 
 Route::get('/dashboard', [TaskController::class, 'index'])->middleware('auth')->name('dashboard');
 Route::post('/profil/sifre-guncelle', [App\Http\Controllers\AuthController::class, 'changePasswordWeb'])->name('password.update.web');
+// 1. E-posta girilecek ilk ekranı gösterme
+Route::get('/sifremi-unuttum', [App\Http\Controllers\AuthController::class, 'showForgotPasswordForm'])->name('password.forgot.form');
+
+// 2. Kodu üretip maile atma işlemi
+Route::post('/sifremi-unuttum', [App\Http\Controllers\AuthController::class, 'sendResetOtpWeb'])->name('password.forgot.send');
+
+// 3. Kodun ve yeni şifrenin girileceği ikinci ekranı gösterme
+Route::get('/sifremi-sifirla', [App\Http\Controllers\AuthController::class, 'showResetPasswordForm'])->name('password.reset.form');
+
+// 4. Kodu doğrulayıp şifreyi güncelleme işlemi
+Route::post('/sifremi-sifirla', [App\Http\Controllers\AuthController::class, 'resetPasswordWithOtpWeb'])->name('password.reset.submit');
